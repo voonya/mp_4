@@ -97,25 +97,20 @@ fun check_pat p =
 	end
     end
 
-fun match (v, p) =
-    case p of
-	Wildcard => SOME []
-      | UnitP => (case v of Unit => SOME []
-			  | _ => NONE)
-      | Variable str => SOME [(str, v)]
-      | ConstP i => (case v of Const j => if i = j then SOME [] else NONE
-			     | _ => NONE)
-      | TupleP plst => (case v of
-			    Tuple vlst => if List.length plst = List.length vlst
-					  then all_answers match (ListPair.zip (vlst, plst))
-					  else NONE
-			  | _ => NONE)
-      | ConstructorP (str, pt) => (case v of
-				       Constructor (vstr, vval) => if str = vstr
-								   then match (vval, pt)
-								   else NONE
-				     | _ => NONE)
+fun match (v, pat) =
+    case (v,pat) of  
+      (_,Wildcard) => SOME []
+     |(Const v1,ConstP p1) =>if v1 = p1 then SOME [] else NONE
+     |(Unit,UnitP) =>SOME []
+     |(Constructor (s ,v1),ConstructorP (s1, p1) ) => if s = s1 then match(v1,p1) else NONE
+     |(Tuple vs,TupleP ps) => if List.length vs = List.length ps 
+                              then case all_answers match (ListPair.zip(vs,ps))  of
+                                    SOME v2=>SOME v2
+                                   |_ => NONE
+                              else NONE
+     |(_, Variable s ) => SOME [(s,v)]
+     |(_,_) => NONE
 
-fun first_match v plst =
-    SOME (first_answer (fn p => match (v, p)) plst)
+fun first_match v patlst =
+    SOME (first_answer (fn p => match (v, p)) patlst)
     handle NoAnswer => NONE
